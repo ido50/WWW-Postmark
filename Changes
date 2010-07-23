@@ -1,6 +1,8 @@
 Revision history for WWW::Postmark
 
 {{$NEXT}}
+
+0.2       2010-07-23 19:43:54 Asia/Jerusalem
 	- Added minimum perl requirement due to "use feature"
 
 0.1       2010-07-22 13:06:08 Asia/Jerusalem
