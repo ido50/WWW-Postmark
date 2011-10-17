@@ -1,6 +1,13 @@
 Revision history for WWW::Postmark
 
 {{$NEXT}}
+	- Added support to Postmark's new spam score/SpamAssassin API (see
+	  module documentation)
+	- Added the ability to provide HTML and/or plain text content for
+	  emails directly (thanks Ask Bjørn Hansen)
+	- Moved to HTTP::Tiny from LWP::UserAgent as a more lightweight
+	  solution
+	- Increased timeout from 30 seconds to 45 seconds
 
 0.2       2010-07-23 19:43:54 Asia/Jerusalem
 	- Added minimum perl requirement due to "use feature"
