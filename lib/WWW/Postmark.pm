@@ -116,6 +116,16 @@ to send HTML, be sure to open with '<html>' and close with '</html>'. This
 module will look for these tags in order to find out whether you're sending
 a text message or an HTML message.
 
+Either this parameter or html and/or text are required.
+
+=item * html
+
+Instead of using C<body> you can also specify the html content directly.
+
+=item * text
+
+... or the plain text part of the email.
+
 =back
 
 You can optionally supply the following parameters as well:
@@ -164,7 +174,7 @@ sub send {
 
 	# make sure there's a mail body
 	croak "You must provide a mail body."
-		unless $params{body};
+		unless $params{body} or $params{html} or $params{text};
 
 	# if cc and/or bcc are provided, validate them
 	if ($params{cc}) {
