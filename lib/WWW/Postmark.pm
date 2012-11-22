@@ -10,9 +10,8 @@ use Carp;
 use Email::Valid;
 use HTTP::Tiny;
 use JSON::Any;
-use Try::Tiny;
 
-our $VERSION = "0.3";
+our $VERSION = "0.4";
 $VERSION = eval $VERSION;
 
 my $ua = HTTP::Tiny->new(timeout => 45);
@@ -89,10 +88,7 @@ sub new {
 	bless { token => $token, use_ssl => $use_ssl }, $class;
 }
 
-=head2 send( from => 'you@mail.com', to => 'them@mail.com', subject => 
-'An email message', body => $message_body, [ cc => 'someone@mail.com',
-bcc => 'otherone@mail.com, anotherone@mail.com', tag => 'sometag',
-reply_to => 'do-not-reply@mail.com' ] )
+=head2 send( %params )
 
 Receives a hash representing the email message that should be sent and
 attempts to send it through the Postmark service. If the message was
@@ -179,11 +175,7 @@ sub send {
 		unless $params{to};
 
 	# validate all 'to' addresses
-	try {
-		$self->_validate_recipients('to', $params{to});
-	} catch {
-		croak $_;
-	}
+	$self->_validate_recipients('to', $params{to});
 
 	# make sure there's a subject
 	croak "You must provide a mail subject."
@@ -195,18 +187,10 @@ sub send {
 
 	# if cc and/or bcc are provided, validate them
 	if ($params{cc}) {
-		try {
-			$self->_validate_recipients('cc', $params{cc});
-		} catch {
-			croak $_;
-		}
+		$self->_validate_recipients('cc', $params{cc});
 	}
 	if ($params{bcc}) {
-		try {
-			$self->_validate_recipients('bcc', $params{bcc});
-		} catch {
-			croak $_;
-		}
+		$self->_validate_recipients('bcc', $params{bcc});
 	}
 
 	# if reply_to is provided, validate it
@@ -322,13 +306,9 @@ sub spam_score {
 	}
 }
 
-=head1 INTERNAL METHODS
-
-The following methods are only to be used internally.
-
-=head2 _validate_recipients
-
-=cut
+##################################
+##      INTERNAL METHODS        ##
+##################################
 
 sub _validate_recipients {
 	my ($self, $field, $param) = @_;
@@ -350,19 +330,11 @@ sub _validate_recipients {
 	return 1;
 }
 
-=head2 _recipient_error( $field )
-
-=cut
-
 sub _recipient_error {
 	my ($self, $field) = @_;
 
 	return "You must provide a valid '$field' address or addresses, in the format 'address\@domain.tld', or 'Some Name <address\@domain.tld>'. If you're sending to multiple addresses, separate them with commas. You can send up to 20 maximum addresses.";
 }
-
-=head2 _analyze_response( $res )
-
-=cut
 
 sub _analyze_response {
 	my ($self, $res) = @_;
@@ -377,107 +349,210 @@ sub _analyze_response {
 
 			my $code_msg;
 			given ($msg->{ErrorCode}) {
-				when (407) {
-					$code_msg = "Bounce not found";
-				}
-				when (408) {
-					$code_msg = "Bounce query exception";
-				}
-				when (406) {
-					$code_msg = "Inactive recipient";
-				}
-				when (403) {
-					$code_msg = "Incompatible JSON";
+				when (0) {
+					$code_msg = 'Bad or missing API token';
 				}
 				when (300) {
-					$code_msg = "Invalid email request";
-				}
-				when (402) {
-					$code_msg = "Invalid JSON";
-				}
-				when (409) {
-					$code_msg = "JSON required";
-				}
-				when (0) {
-					$code_msg = "Bad or missing API token";
-				}
-				when (401) {
-					$code_msg = "Sender signature not confirmed";
+					$code_msg = 'Invalid email request';
 				}
 				when (400) {
-					$code_msg = "Sender signature not found";
+					$code_msg = 'Sender signature not found';
+				}
+				when (401) {
+					$code_msg = 'Sender signature not confirmed';
+				}
+				when (402) {
+					$code_msg = 'Invalid JSON';
+				}
+				when (403) {
+					$code_msg = 'Incompatible JSON';
 				}
 				when (405) {
-					$code_msg = "Not allowed to send";
+					$code_msg = 'Not allowed to send';
+				}
+				when (406) {
+					$code_msg = 'Inactive recipient';
+				}
+				when (407) {
+					$code_msg = 'Bounce not found';
+				}
+				when (408) {
+					$code_msg = 'Bounce query exception';
+				}
+				when (409) {
+					$code_msg = 'JSON required';
+				}
+				when (410) {
+					$code_msg = 'Too many batch messages';
 				}
 				default {
-					$code_msg = "Unknown error";
+					$code_msg = "Unknown Postmark error code $msg->{ErrorCode}";
 				}
 			}
 			return $code_msg . ': '. $msg->{Message};
 		}
 		when (500) {
-			return "Postmark service error. The service might be down.";
+			return 'Postmark service error. The service might be down.';
 		}
 		default {
-			return "Unknown error.";
+			return "Unknown HTTP error code $res->{status}.";
 		}
 	}
 }
 
-=head1 AUTHOR
+=head1 DIAGNOSTICS
 
-Ido Perlmuter, C<< <ido at ido50 dot net> >>
+The following exceptions are thrown by this module:
 
-=head1 ACKNOWLEDGMENTS
+=over
 
-Ask Bjørn Hansen, for submitting a patch.
+=item C<< "You have not provided a Postmark API token, you cannot send emails" >>
 
-=head1 BUGS
+This means you haven't provided the C<new()> subroutine your Postmark API token.
+Using the Postmark API requires an API token, received when registering to their
+service via their website.
 
-Please report any bugs or feature requests to C<bug-www-postmark at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WWW-Postmark>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+=item C<< "You must provide a mail subject." >>
 
-=head1 SUPPORT
+This error means you haven't given the C<send()> method a subject for your email
+message. Messages sent with this module must have a subject.
 
-You can find documentation for this module with the perldoc command.
+=item C<< "You must provide a mail body." >>
 
-    perldoc WWW::Postmark
+This error means you haven't given the C<send()> method a body for your email
+message. Messages sent with this module must have content.
 
-You can also look for information at:
+=item C<< "You must provide a valid 'from' address in the format 'address\@domain.tld', or 'Your Name <address\@domain.tld>'." >>
 
-=over 4
+This error means the address (or one of the addresses) you're trying to send
+an email to with the C<send()> method is not a valid email address (in the sense
+that it I<cannot> be an email address, not in the sense that the email address does not
+exist (For example, "asdf" is not a valid email address).
 
-=item * RT: CPAN's request tracker
+=item C<< "You must provide a valid reply-to address, in the format 'address\@domain.tld', or 'Some Name <address\@domain.tld>'." >>
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=WWW-Postmark>
+This error, when providing the C<reply-to> parameter to the C<send()> method,
+means the C<reply-to> value is not a valid email address.
 
-=item * AnnoCPAN: Annotated CPAN documentation
+=item C<< "You must provide a valid '%s' address or addresses, in the format 'address\@domain.tld', or 'Some Name <address\@domain.tld>'. If you're sending to multiple addresses, separate them with commas. You can send up to 20 maximum addresses." >>
 
-L<http://annocpan.org/dist/WWW-Postmark>
+Like the above two error messages, but for other email fields such as C<cc> and C<bcc>.
 
-=item * CPAN Ratings
+=item C<< "Failed sending message: %s" >>
 
-L<http://cpanratings.perl.org/d/WWW-Postmark>
+This error is thrown when sending an email fails. The error message should
+include the actual reason for the failure. Usually, the error is returned by
+the Postmark API. For a list of errors returned by Postmark and their meaning,
+take a look at L<http://developer.postmarkapp.com/developer-build.html>.
 
-=item * Search CPAN
+=item C<< "Unknown Postmark error code %s" >>
 
-L<http://search.cpan.org/dist/WWW-Postmark/>
+This means Postmark returned an error code that this module does not
+recognize. The error message should include the error code. If you find
+that error code in L<http://developer.postmarkapp.com/developer-build.html>,
+it probably means this is a new error code this module does not know about yet,
+so please open an appropriate bug report.
+
+=item C<< "Unknown HTTP error code %s." >>
+
+This means the Postmark API returned an unexpected HTTP status code. The error
+message should include the status code returned.
+
+=item C<< "You must provide the raw email text to spam_score()." >>
+
+This error means you haven't passed the C<spam_score()> method the
+requried raw email text.
+
+=item C<< "Postmark spam score API returned error: %s" >>
+
+This error means the spam score API failed parsing your raw email
+text. The error message should include the actual reason for the failure.
+This would be an I<expected> API error. I<Unexpected> API errors will
+be thrown with the next error message.
+
+=item C<< "Failed determining spam score: %s" >>
+
+This error means the spam score API returned an HTTP error. The error
+message should include the actual error message returned.
 
 =back
 
+=head1 CONFIGURATION AND ENVIRONMENT
+  
+C<WWW::Postmark> requires no configuration files or environment variables.
+
+=head1 DEPENDENCIES
+
+C<WWW::Postmark> B<depends> on the following CPAN modules:
+
+=over
+
+=item * L<Carp>
+
+=item * L<Email::Valid>
+
+=item * L<HTTP::Tiny>
+
+=item * L<JSON::Any>
+
+=back
+
+C<WWW::Postmark> recommends L<JSON> and/or L<JSON::XS>
+for actually being able to parse JSON (the Postmark API
+is JSON based).
+
+=head1 INCOMPATIBILITIES WITH OTHER MODULES
+
+None reported.
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests to
+C<bug-WWW-Postmark@rt.cpan.org>, or through the web interface at
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WWW-Postmark>.
+
+=head1 AUTHOR
+
+Ido Perlmuter <ido@ido50.net>
+
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010 Ido Perlmuter.
+Copyright (c) 2010-2012, Ido Perlmuter C<< ido@ido50.net >>.
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
+This module is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself, either version
+5.8.1 or any later version. See L<perlartistic|perlartistic> 
+and L<perlgpl|perlgpl>.
 
-See http://dev.perl.org/licenses/ for more information.
+The full text of the license can be found in the
+LICENSE file included with this module.
 
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN
+OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE
+ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS WITH
+YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL
+NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE
+LIABLE TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL,
+OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE
+THE SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGES.
 
 =cut
 
 1;
+__END__
