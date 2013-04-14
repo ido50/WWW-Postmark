@@ -33,15 +33,18 @@ eval { $res = $api->send(from => 'fake@email.com', to => 'nowhere@email.com', su
 like($@, qr/You must provide a mail body/, 'expected token failure okay');
 
 # a message with both HTML and plain text parts
+undef $res;
 eval { $res = $api->send(from => 'fake@email.com', to => 'somewhere@email.com', subject => 'A test message with HTML and text', html => '<h1>HTML</h1>', text => 'text'); };
 is($res, 1, 'html and text okay');
 
 # a message with multiple recipients that should succeed
+undef $res;
 eval { $res = $api->send(from => 'Fake Email <fake@email.com>', to => 'nowhere@email.com, Some Guy <dev@null.com>,nullify@domain.com', subject => 'A test message.', body => '<html>An HTML message</html>', cc => 'blackhole@nowhere.com, smackhole@nowhere.com'); };
 
 is($res, 1, 'multiple recipients okay');
 
 # an ssl message that should succeed
+undef $res;
 $api->{use_ssl} = 1;
 eval { $res = $api->send(from => 'Fake Email <fake@email.com>', to => 'nowhere@email.com', subject => 'A test message.', body => '<html>An HTML message</html>'); };
 
