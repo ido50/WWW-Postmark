@@ -92,8 +92,10 @@ sub new {
 
 Receives a hash representing the email message that should be sent and
 attempts to send it through the Postmark service. If the message was
-successfully sent, a true value is returned; otherwise, this method will
-croak with an approriate error message (see L</ERRORS> for a full list).
+successfully sent, a hash reference of Postmark's response is returned
+(refer to L<the relevant Postmark documentation|http://developer.postmarkapp.com/developer-build.html#success-response>);
+otherwise, this method will croak with an approriate error message (see
+L</ERRORS> for a full list).
 
 The following keys are required when using this method:
 
@@ -244,7 +246,7 @@ sub send {
 	# analyze the response
 	if ($res->{success}) {
 		# woooooooooooooeeeeeeeeeeee
-		return 1;
+		return $json->from_json( $res->{'content'} );
 	} else {
 		croak "Failed sending message: ".$self->_analyze_response($res);
 	}
