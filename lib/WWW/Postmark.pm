@@ -93,7 +93,7 @@ sub new {
 Receives a hash representing the email message that should be sent and
 attempts to send it through the Postmark service. If the message was
 successfully sent, a true value is returned; otherwise, this method will
-croak with an approriate error message (see L</"ERRORS> for a full list).
+croak with an approriate error message (see L</ERRORS> for a full list).
 
 The following keys are required when using this method:
 
