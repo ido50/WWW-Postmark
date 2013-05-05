@@ -1,6 +1,8 @@
 Revision history for WWW-Postmark
 
 {{$NEXT}}
+
+0.4       2012-11-22 22:22:25 Asia/Jerusalem
 	- Removed Try::Tiny dependency. Don't know why it was here in the first place.
 	- When Postmark returns an unrecognized/unexpected API or HTTP error codes,
 	  an appropriate exception is thrown, with the unrecognized error code indicated
