@@ -18,11 +18,11 @@ eval { $res = $api->send(from => 'fake@email.com', to => 'nowhere@email.com', su
 
 ok($res, 'simple sending okay');
 SKIP: {
-    is(ref $res, 'HASH', 'correct return value type')
-        or skip 'need a hashref for these tests', 3;
-    is($res->{'ErrorCode'}, 0, 'correct error code');
-    is($res->{'To'}, 'nowhere@email.com', 'correct To address');
-    ok($res->{'MessageID'}, 'must have a message ID');
+	is(ref $res, 'HASH', 'correct return value type')
+		|| skip 'need a hashref for these tests', 3;
+	is($res->{'ErrorCode'}, 0, 'correct error code');
+	is($res->{'To'}, 'nowhere@email.com', 'correct To address');
+	ok($res->{'MessageID'}, 'must have a message ID');
 }
 
 # a message that should fail because of wrong token
