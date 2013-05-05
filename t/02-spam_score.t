@@ -43,6 +43,7 @@ ok($res, 'Request #1 was successful');
 ok(ref $res eq 'HASH', 'Received a hash-ref');
 
 # now do the same, but with the 'short' option
+undef $res;
 eval {
 	$res = $api->spam_score(
 		'

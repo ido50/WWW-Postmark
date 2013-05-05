@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 9;
+use Test::More tests => 13;
 use WWW::Postmark;
 
 # generate a new object. The Postmark service provides a special token
@@ -16,7 +16,14 @@ my $res;
 
 eval { $res = $api->send(from => 'fake@email.com', to => 'nowhere@email.com', subject => 'A test message.', body => 'This is a test message.'); };
 
-is($res, 1, 'simple sending okay');
+ok($res, 'simple sending okay');
+SKIP: {
+    is(ref $res, 'HASH', 'correct return value type')
+        or skip 'need a hashref for these tests', 3;
+    is($res->{'ErrorCode'}, 0, 'correct error code');
+    is($res->{'To'}, 'nowhere@email.com', 'correct To address');
+    ok($res->{'MessageID'}, 'must have a message ID');
+}
 
 # a message that should fail because of wrong token
 $api->{token} = 'TEST_TOKEN_THAT_SHOULD_FAIL';
@@ -33,19 +40,22 @@ eval { $res = $api->send(from => 'fake@email.com', to => 'nowhere@email.com', su
 like($@, qr/You must provide a mail body/, 'expected token failure okay');
 
 # a message with both HTML and plain text parts
+undef $res;
 eval { $res = $api->send(from => 'fake@email.com', to => 'somewhere@email.com', subject => 'A test message with HTML and text', html => '<h1>HTML</h1>', text => 'text'); };
-is($res, 1, 'html and text okay');
+ok($res, 'html and text okay');
 
 # a message with multiple recipients that should succeed
+undef $res;
 eval { $res = $api->send(from => 'Fake Email <fake@email.com>', to => 'nowhere@email.com, Some Guy <dev@null.com>,nullify@domain.com', subject => 'A test message.', body => '<html>An HTML message</html>', cc => 'blackhole@nowhere.com, smackhole@nowhere.com'); };
 
-is($res, 1, 'multiple recipients okay');
+ok($res, 'multiple recipients okay');
 
 # an ssl message that should succeed
+undef $res;
 $api->{use_ssl} = 1;
 eval { $res = $api->send(from => 'Fake Email <fake@email.com>', to => 'nowhere@email.com', subject => 'A test message.', body => '<html>An HTML message</html>'); };
 
-is($res, 1, 'SSL sending okay');
+ok($res, 'SSL sending okay');
 
 # let's see what happens when we don't provide an API token
 $api = WWW::Postmark->new;
