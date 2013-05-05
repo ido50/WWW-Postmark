@@ -1,7 +1,10 @@
 Revision history for WWW-Postmark
 
 {{$NEXT}}
+	- The send() method now returns Postmark's return hash instead
+	  of just a true value (thanks Alex Peters)
 	- Using JSON instead of JSON::Any
+	- Small documentation fixes
 
 0.4       2012-11-22 22:22:25 Asia/Jerusalem
 	- Removed Try::Tiny dependency. Don't know why it was here in the first place.
