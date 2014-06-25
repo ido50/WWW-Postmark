@@ -11,7 +11,7 @@ use Email::Valid;
 use HTTP::Tiny;
 use JSON;
 
-our $VERSION = "0.5";
+our $VERSION = "0.6";
 $VERSION = eval $VERSION;
 
 my $ua = HTTP::Tiny->new(timeout => 45);
@@ -156,6 +156,10 @@ so you can analyze statistics of your mail sendings through the Postmark service
 Will force recipients of your email to send their replies to this mail
 address when replying to your email.
 
+=item * track_opens
+
+Set to a true value to enable Postmark's open tracking functionality.
+
 =back
 
 =cut
@@ -224,9 +228,10 @@ sub send {
 	$msg->{HtmlBody} = $params{html} if $params{html};
 	$msg->{TextBody} = $params{text} if $params{text};
 	$msg->{Cc} = $params{cc} if $params{cc};
-	$msg->{Bcc} = $params{Bcc} if $params{bcc};
+	$msg->{Bcc} = $params{bcc} if $params{bcc};
 	$msg->{Tag} = $params{tag} if $params{tag};
 	$msg->{ReplyTo} = $params{reply_to} if $params{reply_to};
+	$msg->{TrackOpens} = 1 if $params{track_opens};
 
 	# create and send the request
 	my $res = $ua->request(
@@ -518,9 +523,11 @@ L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WWW-Postmark>.
 
 Ido Perlmuter <ido@ido50.net>
 
+With help from: Casimir Loeber.
+
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2010-2013, Ido Perlmuter C<< ido@ido50.net >>.
+Copyright (c) 2010-2014, Ido Perlmuter C<< ido@ido50.net >>.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself, either version
