@@ -4,14 +4,13 @@ package WWW::Postmark;
 
 use strict;
 use warnings;
-use feature 'switch';
 
 use Carp;
 use Email::Valid;
 use HTTP::Tiny;
 use JSON;
 
-our $VERSION = "0.6";
+our $VERSION = "0.7";
 $VERSION = eval $VERSION;
 
 my $ua = HTTP::Tiny->new(timeout => 45);
@@ -72,6 +71,9 @@ C<$use_ssl>.
 
 If you do not provide an API token, you will only be able to use Postmark's
 spam score API (you will not be able to send emails).
+
+Note that in order to use SSL, C<HTTP::Tiny> requires certain dependencies
+to be installed. See L<HTTP::Tiny/"SSL SUPPORT"> for more information.
 
 =cut
 
@@ -236,7 +238,7 @@ sub send {
 	# create and send the request
 	my $res = $ua->request(
 		'POST',
-		$self->{use_ssl} ? 'https://api.postmarkapp.com/email' : 'http://api.postmarkapp.com/email',
+		'http' . ($self->{use_ssl} ? 's' : '') . '://api.postmarkapp.com/email',
 		{
 			headers => {
 				'Accept' => 'application/json',
@@ -345,65 +347,34 @@ sub _recipient_error {
 sub _analyze_response {
 	my ($self, $res) = @_;
 
-	given ($res->{status}) {
-		when (401) {
-			return "Missing or incorrect API Key header.";
-		}
-		when (422) {
-			# error is in the JSON thingy
-			my $msg = decode_json($res->{content});
+	return $res->{status} == 401 ? 'Missing or incorrect API Key header.' :
+		 $res->{status} == 422 ? $self->_extract_error($res->{content}) :
+		 $res->{status} == 500 ? 'Postmark service error. The service might be down.' :
+			"Unknown HTTP error code $res->{status}.";
+}
 
-			my $code_msg;
-			given ($msg->{ErrorCode}) {
-				when (0) {
-					$code_msg = 'Bad or missing API token';
-				}
-				when (300) {
-					$code_msg = 'Invalid email request';
-				}
-				when (400) {
-					$code_msg = 'Sender signature not found';
-				}
-				when (401) {
-					$code_msg = 'Sender signature not confirmed';
-				}
-				when (402) {
-					$code_msg = 'Invalid JSON';
-				}
-				when (403) {
-					$code_msg = 'Incompatible JSON';
-				}
-				when (405) {
-					$code_msg = 'Not allowed to send';
-				}
-				when (406) {
-					$code_msg = 'Inactive recipient';
-				}
-				when (407) {
-					$code_msg = 'Bounce not found';
-				}
-				when (408) {
-					$code_msg = 'Bounce query exception';
-				}
-				when (409) {
-					$code_msg = 'JSON required';
-				}
-				when (410) {
-					$code_msg = 'Too many batch messages';
-				}
-				default {
-					$code_msg = "Unknown Postmark error code $msg->{ErrorCode}";
-				}
-			}
-			return $code_msg . ': '. $msg->{Message};
-		}
-		when (500) {
-			return 'Postmark service error. The service might be down.';
-		}
-		default {
-			return "Unknown HTTP error code $res->{status}.";
-		}
-	}
+sub _extract_error {
+	my ($self, $content) = @_;
+
+	my $msg = decode_json($content);
+
+	my %errors = (
+		10	=> 'Bad or missing API token',
+		300	=> 'Invalid email request',
+		400	=> 'Sender signature not found',
+		401	=> 'Sender signature not confirmed',
+		402	=> 'Invalid JSON',
+		403	=> 'Incompatible JSON',
+		405	=> 'Not allowed to send',
+		406	=> 'Inactive recipient',
+		409	=> 'JSON required',
+		410	=> 'Too many batch messages',
+		411	=> 'Forbidden attachment type'
+	);
+
+	my $code_msg = $errors{$msg->{ErrorCode}} || "Unknown Postmark error code $msg->{ErrorCode}";
+
+	return $code_msg . ': '. $msg->{Message};
 }
 
 =head1 DIAGNOSTICS
@@ -505,7 +476,8 @@ C<WWW::Postmark> B<depends> on the following CPAN modules:
 
 C<WWW::Postmark> recommends L<JSON::XS> for parsing JSON (the Postmark API
 is JSON based). If installed, L<JSON> will automatically load L<JSON::XS>
-instead.
+instead. For SSL support, L<IO::Socket::SSL> and L<Net::SSLeay> are also
+recommended.
 
 =head1 INCOMPATIBILITIES WITH OTHER MODULES
 

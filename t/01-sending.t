@@ -51,11 +51,22 @@ eval { $res = $api->send(from => 'Fake Email <fake@email.com>', to => 'nowhere@e
 ok($res, 'multiple recipients okay');
 
 # an ssl message that should succeed
-undef $res;
-$api->{use_ssl} = 1;
-eval { $res = $api->send(from => 'Fake Email <fake@email.com>', to => 'nowhere@email.com', subject => 'A test message.', body => '<html>An HTML message</html>'); };
+SKIP: {
+	eval {
+		require IO::Socket::SSL; IO::Socket::SSL->VERSION(1.42);
+		require Net::SSLeay; Net::SSLeay->VERSION(1.49);
+	};
+	if ($@) {
+		my $msg = "Skipping SSL tests as IO::Socket::SSL and/or Net::SSLeay not installed";
+		diag $msg;
+		skip $msg, 1;
+	}
+	undef $res;
+	$api->{use_ssl} = 1;
+	eval { $res = $api->send(from => 'Fake Email <fake@email.com>', to => 'nowhere@email.com', subject => 'A test message.', body => '<html>An HTML message</html>'); };
 
-ok($res, 'SSL sending okay');
+	ok($res, 'SSL sending okay');
+};
 
 # let's see what happens when we don't provide an API token
 $api = WWW::Postmark->new;

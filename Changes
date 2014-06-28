@@ -1,6 +1,11 @@
 Revision history for WWW-Postmark
 
 {{$NEXT}}
+	- Not using the "switch" feature anymore.
+	- Updated Postmark return codes.
+	- Skipping SSL tests if HTTP::Tiny cannot use SSL (due to missing dependencies).
+
+0.6       2014-06-25 21:32:44+03:00 Asia/Jerusalem
 	- Added support for Postmark's new Open Tracking feature (Casimir Loeber).
 	- Fixed bug causing the BCC option not to work (Casimir Loeber).
 
