@@ -1,6 +1,8 @@
 Revision history for WWW-Postmark
 
 {{$NEXT}}
+
+1.000000  2015-03-03 20:21:10+02:00 Asia/Jerusalem
 	- Added support for file attachments
 	- Replaced JSON with JSON::MaybeXS
 
