@@ -76,7 +76,7 @@ eval {
 		to => 'nowhere@email.com',
 		subject => 'A test message with attachments.',
 		body => 'Hey man, I\'ve added some files which may interest you',
-		attachments => ['t/image.jpg', 't/document.pdf']
+		attachments => ['t/image.jpg', 't/document.txt']
 	);
 };
 
