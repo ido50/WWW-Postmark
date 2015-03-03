@@ -116,6 +116,12 @@ METHODS
         categories, so you can analyze statistics of your mail sendings
         through the Postmark service.
 
+    *   attachments
+
+        An array-ref with paths of files to attach to the email.
+        "WWW::Postmark" will automatically determine the MIME types of these
+        files and encode their contents to base64 as Postmark requires.
+
     *   reply_to
 
         Will force recipients of your email to send their replies to this
@@ -201,6 +207,12 @@ DIAGNOSTICS
         This means the Postmark API returned an unexpected HTTP status code.
         The error message should include the status code returned.
 
+    "Failed opening attachment %s: %s"
+        This error means "WWW::Postmark" was unable to open a file
+        attachment you have supplied for reading. This could be due to
+        permission problem or the file not existing. The full error message
+        should detail the exact cause.
+
     "You must provide the raw email text to spam_score()."
         This error means you haven't passed the "spam_score()" method the
         requried raw email text.
@@ -228,12 +240,16 @@ DEPENDENCIES
 
     *   HTTP::Tiny
 
-    *   JSON
+    *   JSON::MaybeXS
 
-    "WWW::Postmark" recommends JSON::XS for parsing JSON (the Postmark API
-    is JSON based). If installed, JSON will automatically load JSON::XS
-    instead. For SSL support, IO::Socket::SSL and Net::SSLeay are also
-    recommended.
+    *   File::MimeInfo
+
+    *   MIME::Base64
+
+    "WWW::Postmark" recommends Cpanel::JSON::XS for parsing JSON (the
+    Postmark API is JSON based). If installed, JSON::MaybeXS will
+    automatically load Cpanel::JSON::XS or JSON::XS. For SSL support,
+    IO::Socket::SSL and Net::SSLeay will also be needed.
 
 INCOMPATIBILITIES WITH OTHER MODULES
     None reported.
@@ -251,7 +267,7 @@ AUTHOR
     With help from: Casimir Loeber.
 
 LICENSE AND COPYRIGHT
-    Copyright (c) 2010-2014, Ido Perlmuter "ido@ido50.net".
+    Copyright (c) 2010-2015, Ido Perlmuter "ido@ido50.net".
 
     This module is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself, either version 5.8.1 or any later

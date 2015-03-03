@@ -8,9 +8,12 @@ use warnings;
 use Carp;
 use Email::Valid;
 use HTTP::Tiny;
-use JSON;
+use JSON::MaybeXS qw/encode_json decode_json/;
+use File::Basename;
+use File::MimeInfo;
+use MIME::Base64 qw/encode_base64/;
 
-our $VERSION = "0.7";
+our $VERSION = "1.000000";
 $VERSION = eval $VERSION;
 
 my $ua = HTTP::Tiny->new(timeout => 45);
@@ -153,6 +156,12 @@ Same rules as the 'to' parameter.
 Can be used to label your mail messages according to different categories,
 so you can analyze statistics of your mail sendings through the Postmark service.
 
+=item * attachments
+
+An array-ref with paths of files to attach to the email. C<WWW::Postmark> will
+automatically determine the MIME types of these files and encode their contents
+to base64 as Postmark requires.
+
 =item * reply_to
 
 Will force recipients of your email to send their replies to this mail
@@ -234,6 +243,29 @@ sub send {
 	$msg->{Tag} = $params{tag} if $params{tag};
 	$msg->{ReplyTo} = $params{reply_to} if $params{reply_to};
 	$msg->{TrackOpens} = 1 if $params{track_opens};
+
+	if ($params{attachments} && ref $params{attachments} eq 'ARRAY') {
+		# for every file, we need to determine its MIME type and
+		# create a base64 representation of its content
+		foreach (@{$params{attachments}}) {
+			my ($buf, $content);
+
+			open FILE, $_
+				|| croak "Failed opening attachment $_: $!";
+
+			while (read FILE, $buf, 60*57) {
+				$content .= encode_base64($buf);
+			}
+
+			close FILE;
+
+			push(@{$msg->{Attachments} ||= []}, {
+				Name => basename($_),
+				ContentType => mimetype($_),
+				Content => $content
+			});
+		}
+	}
 
 	# create and send the request
 	my $res = $ua->request(
@@ -435,6 +467,12 @@ so please open an appropriate bug report.
 This means the Postmark API returned an unexpected HTTP status code. The error
 message should include the status code returned.
 
+=item C<< "Failed opening attachment %s: %s" >>
+
+This error means C<WWW::Postmark> was unable to open a file attachment you have
+supplied for reading. This could be due to permission problem or the file not
+existing. The full error message should detail the exact cause.
+
 =item C<< "You must provide the raw email text to spam_score()." >>
 
 This error means you haven't passed the C<spam_score()> method the
@@ -470,14 +508,18 @@ C<WWW::Postmark> B<depends> on the following CPAN modules:
 
 =item * L<HTTP::Tiny>
 
-=item * L<JSON>
+=item * L<JSON::MaybeXS>
+
+=item * L<File::MimeInfo>
+
+=item * L<MIME::Base64>
 
 =back
 
-C<WWW::Postmark> recommends L<JSON::XS> for parsing JSON (the Postmark API
-is JSON based). If installed, L<JSON> will automatically load L<JSON::XS>
-instead. For SSL support, L<IO::Socket::SSL> and L<Net::SSLeay> are also
-recommended.
+C<WWW::Postmark> recommends L<Cpanel::JSON::XS> for parsing JSON (the Postmark API
+is JSON based). If installed, L<JSON::MaybeXS> will automatically load L<Cpanel::JSON::XS>
+or L<JSON::XS>. For SSL support, L<IO::Socket::SSL> and L<Net::SSLeay> will also be
+needed.
 
 =head1 INCOMPATIBILITIES WITH OTHER MODULES
 
@@ -499,7 +541,7 @@ With help from: Casimir Loeber.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2010-2014, Ido Perlmuter C<< ido@ido50.net >>.
+Copyright (c) 2010-2015, Ido Perlmuter C<< ido@ido50.net >>.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself, either version

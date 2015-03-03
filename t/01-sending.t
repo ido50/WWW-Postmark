@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 13;
+use Test::More tests => 14;
 use WWW::Postmark;
 
 # generate a new object. The Postmark service provides a special token
@@ -67,6 +67,20 @@ SKIP: {
 
 	ok($res, 'SSL sending okay');
 };
+
+# let's try some attachments
+undef $res;
+eval {
+	$res = $api->send(
+		from => 'Fake Email <fake@email.com>',
+		to => 'nowhere@email.com',
+		subject => 'A test message with attachments.',
+		body => 'Hey man, I\'ve added some files which may interest you',
+		attachments => ['t/image.jpg', 't/document.pdf']
+	);
+};
+
+ok($res, 'message with attachments sent okay');
 
 # let's see what happens when we don't provide an API token
 $api = WWW::Postmark->new;
