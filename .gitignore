@@ -14,3 +14,4 @@ pod2htm*.tmp
 WWW-Postmark-*
 .build*
 MYMETA.*
+*.swp

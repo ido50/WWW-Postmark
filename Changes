@@ -1,6 +1,7 @@
 Revision history for WWW-Postmark
 
 {{$NEXT}}
+    - Re-release under the terms of the Apache License 2.0
 
 1.000000  2015-03-03 20:21:10+02:00 Asia/Jerusalem
 	- Added support for file attachments
