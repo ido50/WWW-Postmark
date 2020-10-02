@@ -114,7 +114,7 @@ in the format 'mail_address@domain.tld' or also provide a name, like
 =item * to
 
 The email address(es) of the recipient(s). You can use both formats as in
-'to', but here you can give multiple addresses. Use a comma to separate
+'from', but here you can give multiple addresses. Use a comma to separate
 them. Note, however, that Postmark limits this to 20 recipients and sending
 will fail if you attempt to send to more than 20 addresses.
 
@@ -167,9 +167,30 @@ to base64 as Postmark requires.
 Will force recipients of your email to send their replies to this mail
 address when replying to your email.
 
+=item * headers
+
+An arrayref of additional headers
+
 =item * track_opens
 
 Set to a true value to enable Postmark's open tracking functionality.
+
+=item * track_links
+
+Set to a true value to enable Postmark's link tracking functionality.
+
+=item * metadata
+
+A hashref of metadata to add to the email, e.g.
+{
+  key_a => 'value_a',
+  key_b => 'value_b',
+  ...
+}
+
+=item * message_stream
+
+An optional string specifying the message stream to use. If not specified, Postmark assumes "outbound"
 
 =back
 
@@ -242,7 +263,11 @@ sub send {
 	$msg->{Bcc} = $params{bcc} if $params{bcc};
 	$msg->{Tag} = $params{tag} if $params{tag};
 	$msg->{ReplyTo} = $params{reply_to} if $params{reply_to};
+	$msg->{Headers} = $params{headers} if $params{headers};
 	$msg->{TrackOpens} = 1 if $params{track_opens};
+	$msg->{TrackLinks} = 1 if $params{track_links};
+	$msg->{Metadata} = $params{metadata} if $params{metadata};
+	$msg->{MessageStream} = $params{message_stream} if $params{message_stream};
 
 	if ($params{attachments} && ref $params{attachments} eq 'ARRAY') {
 		# for every file, we need to determine its MIME type and
